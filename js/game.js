@@ -34,6 +34,7 @@
     chapterTitle: $("#chapter-title"),
     missionText: $("#mission-text"),
     taskPips: $("#task-pips"),
+    missionCard: $("#mission-card-toggle"),
     interactHint: $("#interact-hint"),
     interactLabel: $("#interact-label"),
     chapterCard: $("#chapter-card"),
@@ -146,7 +147,8 @@
     lastTime: performance.now(),
     lastSaveAt: 0,
     toastTimer: null,
-    chapterCardTimer: null
+    chapterCardTimer: null,
+    camera: { x: 0, y: 0, zoom: 1 }
   };
 
   function shuffle(values) {
@@ -228,54 +230,60 @@
     await Promise.all(jobs.concat(coreJobs));
   }
 
+  function applyCollisionPayload(payload) {
+    if (!payload || typeof payload !== "object" || !payload.chapters) return false;
+    state.collisions = payload.chapters;
+    if (payload.portals) {
+      DATA.chapters.forEach((chapter) => {
+        const savedPortal = payload.portals[chapter.id];
+        if (savedPortal && Number.isFinite(Number(savedPortal.x)) && Number.isFinite(Number(savedPortal.y))) {
+          chapter.portal.x = Number(savedPortal.x);
+          chapter.portal.y = Number(savedPortal.y);
+        }
+      });
+    }
+    if (payload.spawns) {
+      DATA.chapters.forEach((chapter) => {
+        const savedSpawn = payload.spawns[chapter.id];
+        if (savedSpawn && Number.isFinite(Number(savedSpawn.x)) && Number.isFinite(Number(savedSpawn.y))) {
+          chapter.spawn.x = Number(savedSpawn.x);
+          chapter.spawn.y = Number(savedSpawn.y);
+        }
+      });
+    }
+    if (payload.npcs && typeof payload.npcs === "object") {
+      DATA.chapters.forEach((chapter) => {
+        const savedNpcs = payload.npcs[chapter.id];
+        if (!savedNpcs || typeof savedNpcs !== "object") return;
+        chapter.interactions.forEach((item) => {
+          const savedNpc = savedNpcs[item.id];
+          if (savedNpc && Number.isFinite(Number(savedNpc.x)) && Number.isFinite(Number(savedNpc.y))) {
+            item.x = Number(savedNpc.x);
+            item.y = Number(savedNpc.y);
+          }
+        });
+      });
+    }
+    state.spawnSignature = DATA.chapters
+      .map((chapter) => `${chapter.id}:${Number(chapter.spawn.x).toFixed(2)},${Number(chapter.spawn.y).toFixed(2)}`)
+      .join("|");
+    return true;
+  }
+
   async function loadCollisions() {
+    // Android WebView loads the game from file://, where fetch() can be blocked
+    // by origin rules. The release build bundles the editor's saved payload as
+    // a deterministic fallback, while the HTTP API still wins on desktop.
+    if (location.protocol === "file:" && applyCollisionPayload(window.GAME_COLLISIONS)) return;
     for (const url of ["data/collisions.json", "/api/collisions", "data/collisions.default.json"]) {
       try {
         const response = await fetch(url, { cache: "no-store" });
-        if (!response.ok) continue;
-        const payload = await response.json();
-        if (payload && payload.chapters) {
-          state.collisions = payload.chapters;
-          if (payload.portals) {
-            DATA.chapters.forEach((chapter) => {
-              const savedPortal = payload.portals[chapter.id];
-              if (savedPortal && Number.isFinite(Number(savedPortal.x)) && Number.isFinite(Number(savedPortal.y))) {
-                chapter.portal.x = Number(savedPortal.x);
-                chapter.portal.y = Number(savedPortal.y);
-              }
-            });
-          }
-          if (payload.spawns) {
-            DATA.chapters.forEach((chapter) => {
-              const savedSpawn = payload.spawns[chapter.id];
-              if (savedSpawn && Number.isFinite(Number(savedSpawn.x)) && Number.isFinite(Number(savedSpawn.y))) {
-                chapter.spawn.x = Number(savedSpawn.x);
-                chapter.spawn.y = Number(savedSpawn.y);
-              }
-            });
-          }
-          if (payload.npcs && typeof payload.npcs === "object") {
-            DATA.chapters.forEach((chapter) => {
-              const savedNpcs = payload.npcs[chapter.id];
-              if (!savedNpcs || typeof savedNpcs !== "object") return;
-              chapter.interactions.forEach((item) => {
-                const savedNpc = savedNpcs[item.id];
-                if (savedNpc && Number.isFinite(Number(savedNpc.x)) && Number.isFinite(Number(savedNpc.y))) {
-                  item.x = Number(savedNpc.x);
-                  item.y = Number(savedNpc.y);
-                }
-              });
-            });
-          }
-          state.spawnSignature = DATA.chapters
-            .map((chapter) => `${chapter.id}:${Number(chapter.spawn.x).toFixed(2)},${Number(chapter.spawn.y).toFixed(2)}`)
-            .join("|");
-          return;
-        }
+        if (response.ok && applyCollisionPayload(await response.json())) return;
       } catch (error) {
-        // Try the next local source. Text and gameplay remain usable without the API.
+        // Try the next local source, then the bundled payload below.
       }
     }
+    if (applyCollisionPayload(window.GAME_COLLISIONS)) return;
     state.collisions = {};
     state.spawnSignature = DATA.chapters
       .map((chapter) => `${chapter.id}:${Number(chapter.spawn.x).toFixed(2)},${Number(chapter.spawn.y).toFixed(2)}`)
@@ -512,6 +520,37 @@
     state.chapterCardTimer = setTimeout(() => { els.chapterCard.hidden = true; }, 2500);
   }
 
+  function isTouchLayout() {
+    return Boolean(window.matchMedia?.("(pointer: coarse)").matches || window.innerWidth <= 800);
+  }
+
+  function setMissionCardCollapsed(collapsed) {
+    if (!els.missionCard) return;
+    const next = Boolean(collapsed);
+    els.missionCard.classList.toggle("is-collapsed", next);
+    els.missionCard.setAttribute("aria-expanded", String(!next));
+    els.missionCard.setAttribute("aria-label", next ? "展开任务信息" : "收起任务信息");
+  }
+
+  function updateCamera(immediate = false) {
+    const zoom = isTouchLayout() ? 1.28 : 1;
+    const viewWidth = WORLD.width / zoom;
+    const viewHeight = WORLD.height / zoom;
+    const maxX = Math.max(0, WORLD.width - viewWidth);
+    const maxY = Math.max(0, WORLD.height - viewHeight);
+    const targetX = Math.min(maxX, Math.max(0, state.player.x - viewWidth / 2));
+    const targetY = Math.min(maxY, Math.max(0, state.player.y - viewHeight / 2));
+    if (immediate || state.camera.zoom !== zoom) {
+      state.camera.zoom = zoom;
+      state.camera.x = targetX;
+      state.camera.y = targetY;
+      return;
+    }
+    const ease = isTouchLayout() ? .18 : 1;
+    state.camera.x += (targetX - state.camera.x) * ease;
+    state.camera.y += (targetY - state.camera.y) * ease;
+  }
+
   function startChapter(index, restorePosition = false) {
     state.chapterIndex = Math.max(0, Math.min(index, DATA.chapters.length - 1));
     const chapter = currentChapter();
@@ -528,8 +567,10 @@
     state.player.moving = false;
     state.nearby = null;
     state.transition = false;
+    updateCamera(true);
     showScreen("game");
     updateHUD();
+    setMissionCardCollapsed(isTouchLayout());
     playBgm();
     showChapterCard();
     saveProgress(true);
@@ -913,14 +954,12 @@
   }
 
   function drawContained(image) {
-    const scale = Math.min(WORLD.width / image.width, WORLD.height / image.height);
-    const width = image.width * scale;
-    const height = image.height * scale;
-    const x = (WORLD.width - width) / 2;
-    const y = (WORLD.height - height) / 2;
+    // Every chapter owns a full 16:9 game world. Stretching the source to
+    // that world avoids letterbox bands on wide or tall chapter artwork; the
+    // mobile camera then crops the filled world while following the player.
     ctx.fillStyle = "#071224";
     ctx.fillRect(0, 0, WORLD.width, WORLD.height);
-    ctx.drawImage(image, x, y, width, height);
+    ctx.drawImage(image, 0, 0, WORLD.width, WORLD.height);
   }
 
   function drawPortal(chapter, time) {
@@ -1050,6 +1089,10 @@
   function render(time) {
     if (state.screen !== "game") return;
     const chapter = currentChapter();
+    updateCamera();
+    ctx.save();
+    ctx.scale(state.camera.zoom, state.camera.zoom);
+    ctx.translate(-state.camera.x, -state.camera.y);
     const background = images.backgrounds.get(chapter.id);
     if (background) drawContained(background);
     drawPortal(chapter, time);
@@ -1061,6 +1104,7 @@
     gradient.addColorStop(1, "rgba(0,4,18,.34)");
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, WORLD.width, WORLD.height);
+    ctx.restore();
   }
 
   function loop(time) {
@@ -1113,6 +1157,20 @@
     els.dialogClose.addEventListener("click", closeDialog);
     els.dialogNext.addEventListener("click", closeDialog);
     els.endingNext.addEventListener("click", nextEnding);
+    if (els.missionCard) {
+      const toggleMissionCard = () => {
+        if (!isTouchLayout()) return;
+        setMissionCardCollapsed(!els.missionCard.classList.contains("is-collapsed"));
+        playClick("soft");
+      };
+      els.missionCard.addEventListener("click", toggleMissionCard);
+      els.missionCard.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          toggleMissionCard();
+        }
+      });
+    }
     els.touchInteract.addEventListener("pointerdown", (event) => { event.preventDefault(); interact(); });
 
     document.querySelectorAll(".touch-key").forEach((button) => {
