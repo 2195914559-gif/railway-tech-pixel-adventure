@@ -148,7 +148,8 @@
     lastSaveAt: 0,
     toastTimer: null,
     chapterCardTimer: null,
-    camera: { x: 0, y: 0, zoom: 1 }
+    camera: { x: 0, y: 0, zoom: 1 },
+    renderXCompensation: 1
   };
 
   function shuffle(values) {
@@ -962,6 +963,24 @@
     ctx.drawImage(image, 0, 0, WORLD.width, WORLD.height);
   }
 
+  // The mobile canvas fills the real viewport, which can be wider than the
+  // source 16:9 world. Keep character/UI art at a uniform display scale even
+  // while the background is stretched edge-to-edge.
+  function updateDisplayXCompensation() {
+    const rect = els.canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height || !els.canvas.width || !els.canvas.height) {
+      state.renderXCompensation = 1;
+      return;
+    }
+    const sx = rect.width / els.canvas.width;
+    const sy = rect.height / els.canvas.height;
+    state.renderXCompensation = sy / sx;
+  }
+
+  function displayXCompensation() {
+    return state.renderXCompensation || 1;
+  }
+
   function drawPortal(chapter, time) {
     const portal = chapter.portal;
     if (!isPortalReady(chapter)) return;
@@ -969,18 +988,26 @@
     const height = width * (images.portal.height / images.portal.width || .914);
     const top = portal.y - height * .58;
     const glow = .78 + Math.sin(time * .005) * .12;
+    const xComp = displayXCompensation();
     ctx.save();
     ctx.globalAlpha = glow;
     ctx.fillStyle = `${portal.color}45`;
     ctx.shadowColor = portal.color;
     ctx.shadowBlur = 24;
+    ctx.translate(portal.x, portal.y + 15);
+    ctx.scale(xComp, 1);
     ctx.beginPath();
-    ctx.ellipse(portal.x, portal.y + 15, width * .28, height * .34, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, width * .28, height * .34, 0, 0, Math.PI * 2);
     ctx.fill();
+    ctx.restore();
+    ctx.save();
     ctx.shadowBlur = 0;
     ctx.globalAlpha = 1;
     ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(images.portal, portal.x - width / 2, top, width, height);
+    ctx.translate(portal.x, top);
+    ctx.scale(xComp, 1);
+    ctx.drawImage(images.portal, -width / 2, 0, width, height);
+    ctx.restore();
 
     const labelY = Math.max(24, portal.y - height * .78);
     ctx.font = "900 17px 'Microsoft YaHei UI', sans-serif";
@@ -990,12 +1017,15 @@
     ctx.fillStyle = "rgba(2, 14, 42, .94)";
     ctx.strokeStyle = portal.color;
     ctx.lineWidth = 3;
-    ctx.fillRect(portal.x - labelWidth / 2, labelY - 16, labelWidth, 32);
-    ctx.strokeRect(portal.x - labelWidth / 2, labelY - 16, labelWidth, 32);
+    ctx.save();
+    ctx.translate(portal.x, labelY);
+    ctx.scale(xComp, 1);
+    ctx.fillRect(-labelWidth / 2, -16, labelWidth, 32);
+    ctx.strokeRect(-labelWidth / 2, -16, labelWidth, 32);
     ctx.fillStyle = "#f7fbff";
     ctx.shadowColor = "#00112f";
     ctx.shadowBlur = 4;
-    ctx.fillText(portal.label, portal.x, labelY + 1);
+    ctx.fillText(portal.label, 0, 1);
     ctx.restore();
   }
 
@@ -1006,22 +1036,29 @@
     const cellHeight = images.npcAtlas.height / 3;
     const height = item.npcHeight || 86;
     const width = height * (cellWidth / cellHeight);
+    const xComp = displayXCompensation();
     ctx.save();
     ctx.globalAlpha = .24;
     ctx.fillStyle = "#00102f";
+    ctx.translate(item.x, item.y - 3);
+    ctx.scale(xComp, 1);
     ctx.beginPath();
-    ctx.ellipse(item.x, item.y - 3, Math.max(17, width * .3), 7, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, Math.max(17, width * .3), 7, 0, 0, Math.PI * 2);
     ctx.fill();
+    ctx.restore();
+    ctx.save();
     ctx.globalAlpha = 1;
     ctx.imageSmoothingEnabled = true;
+    ctx.translate(item.x, item.y - height);
+    ctx.scale(xComp, 1);
     ctx.drawImage(
       images.npcAtlas,
       sprite[0] * cellWidth,
       sprite[1] * cellHeight,
       cellWidth,
       cellHeight,
-      item.x - width / 2,
-      item.y - height,
+      -width / 2,
+      0,
       width,
       height
     );
@@ -1031,12 +1068,13 @@
   function drawInteraction(item, chapter, time) {
     const done = item.main ? isTaskComplete(item, chapter) : isSeen(item, chapter);
     const pulse = 1 + Math.sin(time * .006 + item.x * .01) * .07;
+    const xComp = displayXCompensation();
     drawNpc(item);
     const markerSize = item.main ? 36 : 24;
     const markerOffset = item.npcSprite ? (item.npcHeight || 86) + 16 : item.main ? 54 : 44;
     ctx.save();
     ctx.translate(item.x, item.y - markerOffset);
-    ctx.scale(pulse, pulse);
+    ctx.scale(xComp * pulse, pulse);
     ctx.fillStyle = done ? "#35e6a0" : item.main ? "#ffd34e" : "#46d9ff";
     ctx.strokeStyle = "#06112d";
     ctx.lineWidth = item.main ? 8 : 5;
@@ -1054,15 +1092,22 @@
     const sequence = [0, 1, 2, 1];
     const col = state.player.moving ? sequence[Math.floor(state.player.animationTime * 8) % sequence.length] : 1;
     const size = 82;
+    const xComp = displayXCompensation();
     ctx.save();
     ctx.imageSmoothingEnabled = true;
     ctx.globalAlpha = .28;
     ctx.fillStyle = "#00102f";
+    ctx.translate(state.player.x, state.player.y - 4);
+    ctx.scale(xComp, 1);
     ctx.beginPath();
-    ctx.ellipse(state.player.x, state.player.y - 4, 24, 8, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, 24, 8, 0, 0, Math.PI * 2);
     ctx.fill();
+    ctx.restore();
+    ctx.save();
     ctx.globalAlpha = 1;
-    ctx.drawImage(images.sprite, col * 256, row * 256, 256, 256, state.player.x - size / 2, state.player.y - size, size, size);
+    ctx.translate(state.player.x, state.player.y - size);
+    ctx.scale(xComp, 1);
+    ctx.drawImage(images.sprite, col * 256, row * 256, 256, 256, -size / 2, 0, size, size);
     ctx.restore();
   }
 
@@ -1090,6 +1135,7 @@
     if (state.screen !== "game") return;
     const chapter = currentChapter();
     updateCamera();
+    updateDisplayXCompensation();
     ctx.save();
     ctx.scale(state.camera.zoom, state.camera.zoom);
     ctx.translate(-state.camera.x, -state.camera.y);
