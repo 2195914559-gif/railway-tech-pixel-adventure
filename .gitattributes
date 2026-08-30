@@ -1,0 +1,11 @@
+# 保持文本文件 LF 行尾，二进制文件不做转码
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.svg text eol=lf
+*.md text eol=lf
+*.webp binary
+*.mp3 binary
+*.m4a binary
+*.mp4 binary
