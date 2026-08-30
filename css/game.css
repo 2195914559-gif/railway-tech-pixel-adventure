@@ -180,7 +180,7 @@ button { font: inherit; }
   background: #000;
 }
 
-.intro-screen video { position: absolute; inset: 0; z-index: 0; display: block; width: 100%; height: 100%; object-fit: fill; }
+.intro-screen video { position: absolute; inset: 0; z-index: 0; display: block; width: 100%; height: 100%; object-fit: contain; background: #000; }
 
 .intro-vignette {
   position: absolute;
@@ -611,6 +611,33 @@ kbd {
   .cover-corner-actions { top: max(14px, env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); bottom: auto; }
   .game-screen { align-content: start; }
   .game-stage { width: 100vw; margin-top: max(6vh, env(safe-area-inset-top)); }
+}
+
+/* Wide phones (and tablets held horizontally) can be wider than 16:9. Let
+   the game stage consume the real viewport instead of leaving side gutters;
+   the canvas is intentionally stretched to this responsive stage. */
+@media (pointer: coarse) and (orientation: landscape) {
+  /* Wide phones/tablets can be wider than the original 16:9 cover art.
+     Stretch the main menu to the real viewport so it has no side gutters,
+     matching the responsive in-game stage below. */
+  .cover-screen { display: block; }
+  .cover-stage {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    max-width: none;
+    aspect-ratio: auto;
+    background-size: 100% 100%;
+  }
+  .game-screen { display: block; }
+  .game-stage {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    max-width: none;
+    aspect-ratio: auto;
+  }
+  #game-canvas { width: 100%; height: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
