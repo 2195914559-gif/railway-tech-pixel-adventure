@@ -501,23 +501,63 @@ kbd {
   .touch-controls {
     position: fixed;
     z-index: 20;
-    inset: auto max(14px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+    inset: auto max(22px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(22px, env(safe-area-inset-left));
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
     pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
   }
-  .dpad { position: relative; width: 150px; height: 150px; pointer-events: auto; }
+  /* A translucent, circular gamepad keeps the playfield visible while the
+     thumb rests on the four directions. */
+  .dpad {
+    position: relative;
+    width: clamp(156px, 23vw, 196px);
+    height: clamp(156px, 23vw, 196px);
+    border: 1px solid rgba(174, 236, 255, .34);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(11, 75, 125, .34) 0 37%, rgba(4, 26, 65, .44) 38% 67%, rgba(2, 14, 40, .22) 68% 100%);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08), 0 10px 30px rgba(0, 0, 0, .28);
+    pointer-events: auto;
+  }
+  .dpad::before,
+  .dpad::after { content: ""; position: absolute; pointer-events: none; background: rgba(163, 227, 255, .16); }
+  .dpad::before { left: 50%; top: 13%; width: 1px; height: 74%; transform: translateX(-50%); }
+  .dpad::after { top: 50%; left: 13%; width: 74%; height: 1px; transform: translateY(-50%); }
   .touch-key,
-  .touch-interact { border: 3px solid rgba(218, 247, 255, .9); color: #fff; background: rgba(5, 44, 100, .78); box-shadow: 0 4px 0 rgba(0, 0, 0, .7), inset 0 0 16px rgba(0, 207, 255, .35); touch-action: none; }
-  .touch-key { position: absolute; width: 52px; height: 52px; font-size: 20px; }
-  .touch-key.up { left: 49px; top: 0; }
-  .touch-key.left { left: 0; top: 49px; }
-  .touch-key.down { left: 49px; top: 98px; }
-  .touch-key.right { left: 98px; top: 49px; }
+  .touch-interact {
+    border: 2px solid rgba(224, 250, 255, .78);
+    color: #fff;
+    background: rgba(5, 44, 100, .62);
+    box-shadow: 0 5px 0 rgba(0, 0, 0, .42), inset 0 0 18px rgba(0, 207, 255, .32), 0 0 0 6px rgba(20, 144, 203, .12);
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .touch-key {
+    position: absolute;
+    width: clamp(52px, 7.2vw, 68px);
+    height: clamp(52px, 7.2vw, 68px);
+    border: 2px solid rgba(218, 247, 255, .76);
+    border-radius: 50%;
+    font-size: clamp(20px, 3vw, 28px);
+    line-height: 1;
+    background: rgba(5, 44, 100, .66);
+    box-shadow: 0 4px 0 rgba(0, 0, 0, .42), inset 0 0 14px rgba(0, 207, 255, .28);
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .touch-key.up { left: 50%; top: 4%; transform: translateX(-50%); }
+  .touch-key.left { left: 4%; top: 50%; transform: translateY(-50%); }
+  .touch-key.down { left: 50%; bottom: 4%; transform: translateX(-50%); }
+  .touch-key.right { right: 4%; top: 50%; transform: translateY(-50%); }
   .touch-key.active,
-  .touch-interact:active { transform: translateY(4px); filter: brightness(1.4); box-shadow: 0 0 0 #000; }
-  .touch-interact { display: grid; width: 82px; height: 82px; place-content: center; border-radius: 50%; pointer-events: auto; font-size: 27px; font-weight: 900; }
+  .touch-interact:active { filter: brightness(1.4); box-shadow: 0 0 0 #000, inset 0 0 20px rgba(0, 207, 255, .55); }
+  .touch-key.up.active { transform: translateX(-50%) translateY(4px); }
+  .touch-key.left.active { transform: translateY(calc(-50% + 4px)); }
+  .touch-key.down.active { transform: translateX(-50%) translateY(4px); }
+  .touch-key.right.active { transform: translateY(calc(-50% + 4px)); }
+  .touch-interact { display: grid; width: clamp(86px, 12vw, 112px); height: clamp(86px, 12vw, 112px); place-content: center; border-radius: 50%; pointer-events: auto; font-size: clamp(27px, 4vw, 36px); font-weight: 900; }
   .touch-interact span { display: block; font-size: 11px; letter-spacing: .1em; }
   .interact-hint { bottom: 18%; }
 }
@@ -530,7 +570,7 @@ kbd {
   .mission-card p { max-width: 90%; }
 }
 
-@media (max-aspect-ratio: 4 / 3) {
+@media (orientation: portrait) and (max-aspect-ratio: 4 / 3) {
   .cover-stage { width: 100vw; height: 100vh; aspect-ratio: auto; background-size: contain; background-repeat: no-repeat; }
   .cover-menu { top: auto; bottom: max(4%, env(safe-area-inset-bottom)); left: 50%; width: min(70vw, 400px); transform: translateX(-50%); padding: 8px; border-radius: 16px; background: rgba(0, 8, 35, .72); backdrop-filter: blur(8px); }
   .cover-corner-actions { top: max(14px, env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); bottom: auto; }
@@ -542,6 +582,52 @@ kbd {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
 }
 
+
+/* ---- 竖屏提示（网页版新增，仅在手机竖屏显示） ---- */
+.rotate-hint {
+  display: none;
+}
+@media (orientation: portrait) and (pointer: coarse) {
+  .rotate-hint {
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 90;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: calc(100vw - 24px);
+    padding: 7px 10px 7px 12px;
+    border: 1px solid rgba(120, 200, 255, 0.42);
+    border-radius: 999px;
+    background: rgba(4, 18, 48, 0.86);
+    color: #cfe9ff;
+    font-size: 12px;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+  }
+}
+.rotate-hint-icon {
+  font-size: 15px;
+  color: #57e0ff;
+}
+.rotate-hint-close {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-left: 2px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(120, 200, 255, 0.16);
+  color: #cfe9ff;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
 
 /* ---- 加载进度条（网页版新增） ---- */
 .boot-bar {
