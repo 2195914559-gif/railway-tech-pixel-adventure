@@ -168,11 +168,33 @@
     </div>
 
     <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+    <div id="rotate-hint" class="rotate-hint" role="status">
+      <span class="rotate-hint-icon" aria-hidden="true">&#8635;</span>
+      <span>横屏游玩，画面更大更清晰</span>
+      <button id="rotate-hint-close" class="rotate-hint-close" type="button" aria-label="关闭提示">&times;</button>
+    </div>
   </main>
 
   <audio id="bgm-player" loop preload="none"></audio>
   <audio id="voice-player" preload="none"></audio>
 
+  <script>
+    // 竖屏提示：仅在手机竖屏出现，关闭后不再打扰
+    (function () {
+      var hint = document.getElementById("rotate-hint");
+      if (!hint) return;
+      var dismissed = false;
+      try { dismissed = localStorage.getItem("railway-rotate-hint") === "1"; } catch (e) {}
+      if (dismissed) { hint.parentNode && hint.parentNode.removeChild(hint); return; }
+      var close = document.getElementById("rotate-hint-close");
+      if (!close) return;
+      close.addEventListener("click", function () {
+        hint.parentNode && hint.parentNode.removeChild(hint);
+        try { localStorage.setItem("railway-rotate-hint", "1"); } catch (e) {}
+      });
+    })();
+  </script>
   <script src="js/game-data.js?v=20260830-web1"></script>
   <script src="js/game.js?v=20260830-web1"></script>
 </body>
