@@ -10,7 +10,7 @@
   <meta property="og:type" content="website">
   <link rel="icon" href="assets/ui/railway-emblem.svg" type="image/svg+xml">
   <title>前方到站，世界一流！</title>
-  <link rel="stylesheet" href="css/game.css?v=20260830-web1">
+  <link rel="stylesheet" href="css/game.css?v=20260830-10">
 </head>
 <body>
   <div id="boot-screen" class="screen boot-screen" aria-live="polite">
@@ -54,7 +54,7 @@
     </div>
 
     <section id="intro-screen" class="screen intro-screen" hidden aria-label="开场视频">
-      <video id="intro-video" preload="auto" playsinline webkit-playsinline x5-playsinline>
+      <video id="intro-video" preload="metadata" playsinline webkit-playsinline x5-playsinline>
         <source src="assets/video/intro-placeholder.mp4" type="video/mp4">
       </video>
       <div class="intro-vignette"></div>
@@ -74,7 +74,7 @@
         <div class="scanlines" aria-hidden="true"></div>
 
         <header class="hud">
-          <div class="mission-card">
+          <div id="mission-card-toggle" class="mission-card" role="button" tabindex="0" aria-expanded="false" aria-label="展开任务信息">
             <span id="chapter-number" class="chapter-number">第一站</span>
             <strong id="chapter-title">智慧车站</strong>
             <p id="mission-text">帮助三位旅客解决出行难题</p>
@@ -195,7 +195,8 @@
       });
     })();
   </script>
-  <script src="js/game-data.js?v=20260830-web1"></script>
-  <script src="js/game.js?v=20260830-web1"></script>
+  <script src="js/game-data.js?v=20260830-10"></script>
+  <script src="data/collisions.bundle.js?v=20260830-10"></script>
+  <script src="js/game.js?v=20260830-10"></script>
 </body>
 </html>
