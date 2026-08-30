@@ -180,17 +180,21 @@ button { font: inherit; }
   background: #000;
 }
 
-.intro-screen video { width: 100%; height: 100%; object-fit: contain; }
+.intro-screen video { position: absolute; inset: 0; z-index: 0; display: block; width: 100%; height: 100%; object-fit: fill; }
 
 .intro-vignette {
   position: absolute;
+  z-index: 1;
   inset: 0;
   pointer-events: none;
-  box-shadow: inset 0 0 16vw #000;
+  /* Keep the cinematic edge darkening subtle so subtitles baked into the
+     video remain readable on small screens. */
+  box-shadow: inset 0 0 10vw rgba(0, 0, 0, .38);
 }
 
 .intro-label {
   position: absolute;
+  z-index: 2;
   left: max(22px, env(safe-area-inset-left));
   bottom: max(22px, env(safe-area-inset-bottom));
   display: grid;
@@ -202,7 +206,7 @@ button { font: inherit; }
 
 .intro-label strong { color: var(--blue); letter-spacing: .1em; }
 
-.skip-action { position: absolute; top: max(22px, env(safe-area-inset-top)); right: max(22px, env(safe-area-inset-right)); }
+.skip-action { position: absolute; z-index: 2; top: max(22px, env(safe-area-inset-top)); right: max(22px, env(safe-area-inset-right)); }
 
 .intro-error {
   position: absolute;
@@ -430,12 +434,12 @@ kbd {
 .archive-gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
 .archive-gallery img { display: block; width: 100%; height: auto; border: 1px solid #2d83c0; background: #02091d; object-fit: contain; cursor: zoom-in; transition: border-color .15s, filter .15s, transform .15s; }
 .archive-gallery img:hover, .archive-gallery img:focus-visible { border-color: var(--gold); filter: brightness(1.14); transform: translateY(-2px); outline: none; }
-.image-viewer-overlay { position: fixed; z-index: 90; inset: 0; display: grid; place-items: center; padding: 5vh 5vw; background: rgba(0, 4, 18, .94); backdrop-filter: blur(8px); }
+.image-viewer-overlay { position: fixed; z-index: 90; inset: 0; display: grid; place-items: center; overflow: auto; padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); background: rgba(0, 4, 18, .94); backdrop-filter: blur(8px); }
 .image-viewer-close { position: absolute; z-index: 2; top: max(18px, env(safe-area-inset-top)); right: max(18px, env(safe-area-inset-right)); border: 3px solid #b8efff; color: #fff; background: #082858; box-shadow: 4px 4px 0 #000; }
 .image-viewer-close:hover, .image-viewer-close:focus-visible { border-color: var(--gold); outline: none; }
-.image-viewer-figure { display: grid; max-width: 92vw; max-height: 90vh; gap: 10px; margin: 0; place-items: center; }
-.image-viewer-figure img { display: block; max-width: 92vw; max-height: 82vh; width: auto; height: auto; border: 3px solid #b8efff; background: #02091d; box-shadow: 8px 8px 0 #000, 0 0 38px rgba(0, 201, 255, .28); object-fit: contain; }
-.image-viewer-figure figcaption { max-width: 92vw; color: #cdeaff; font-size: 13px; text-align: center; }
+.image-viewer-figure { display: grid; width: 100%; height: 100%; max-width: none; max-height: none; grid-template-rows: minmax(0, 1fr) auto; gap: 8px; margin: 0; place-items: center; }
+.image-viewer-figure img { display: block; max-width: 100%; max-height: calc(100vh - 58px); max-height: calc(100dvh - 58px); width: auto; height: auto; border: 3px solid #b8efff; background: #02091d; box-shadow: 8px 8px 0 #000, 0 0 38px rgba(0, 201, 255, .28); object-fit: contain; }
+.image-viewer-figure figcaption { max-width: 100%; padding-bottom: 2px; color: #cdeaff; font-size: 13px; text-align: center; }
 .empty-state { padding: 34px; color: var(--muted); text-align: center; }
 
 .pause-panel {
@@ -498,6 +502,38 @@ kbd {
 .touch-controls { display: none; }
 
 @media (pointer: coarse), (max-width: 800px) {
+  .mission-card {
+    pointer-events: auto;
+    cursor: pointer;
+    width: min(62vw, 340px);
+    min-width: 0;
+    transition: width .18s ease, padding .18s ease, background .18s ease;
+  }
+  /* 收起态：小按钮化，只显示站数，显著降低对画面的遮挡 */
+  .mission-card.is-collapsed {
+    width: clamp(76px, 12vw, 100px);
+    padding: 6px 8px 14px;
+    background: linear-gradient(100deg, rgba(1, 10, 35, .82), rgba(3, 46, 103, .72));
+    text-align: center;
+  }
+  .mission-card.is-collapsed .chapter-number {
+    display: block;
+    font-size: clamp(10px, 1.4vw, 14px);
+    letter-spacing: .05em;
+  }
+  .mission-card.is-collapsed strong,
+  .mission-card.is-collapsed p,
+  .mission-card.is-collapsed .task-pips { display: none; }
+  .mission-card.is-collapsed::after {
+    content: "▾";
+    position: absolute;
+    right: 50%;
+    bottom: 1px;
+    transform: translateX(50%);
+    color: rgba(205, 234, 255, .85);
+    font-size: 10px;
+    line-height: 1;
+  }
   .touch-controls {
     position: fixed;
     z-index: 20;
@@ -513,8 +549,8 @@ kbd {
      thumb rests on the four directions. */
   .dpad {
     position: relative;
-    width: clamp(156px, 23vw, 196px);
-    height: clamp(156px, 23vw, 196px);
+    width: clamp(130px, 18vw, 170px);
+    height: clamp(130px, 18vw, 170px);
     border: 1px solid rgba(174, 236, 255, .34);
     border-radius: 50%;
     background: radial-gradient(circle, rgba(11, 75, 125, .34) 0 37%, rgba(4, 26, 65, .44) 38% 67%, rgba(2, 14, 40, .22) 68% 100%);
@@ -536,8 +572,8 @@ kbd {
   }
   .touch-key {
     position: absolute;
-    width: clamp(52px, 7.2vw, 68px);
-    height: clamp(52px, 7.2vw, 68px);
+    width: clamp(44px, 5.4vw, 58px);
+    height: clamp(44px, 5.4vw, 58px);
     border: 2px solid rgba(218, 247, 255, .76);
     border-radius: 50%;
     font-size: clamp(20px, 3vw, 28px);
@@ -557,7 +593,7 @@ kbd {
   .touch-key.left.active { transform: translateY(calc(-50% + 4px)); }
   .touch-key.down.active { transform: translateX(-50%) translateY(4px); }
   .touch-key.right.active { transform: translateY(calc(-50% + 4px)); }
-  .touch-interact { display: grid; width: clamp(86px, 12vw, 112px); height: clamp(86px, 12vw, 112px); place-content: center; border-radius: 50%; pointer-events: auto; font-size: clamp(27px, 4vw, 36px); font-weight: 900; }
+  .touch-interact { display: grid; width: clamp(72px, 9vw, 96px); height: clamp(72px, 9vw, 96px); place-content: center; border-radius: 50%; pointer-events: auto; font-size: clamp(24px, 3.2vw, 32px); font-weight: 900; }
   .touch-interact span { display: block; font-size: 11px; letter-spacing: .1em; }
   .interact-hint { bottom: 18%; }
 }
@@ -566,7 +602,6 @@ kbd {
   .dialog-choices { grid-template-columns: 1fr; }
   .dialog-panel { max-height: 72vh; overflow-y: auto; }
   .archive-list { grid-template-columns: 1fr; }
-  .mission-card { min-width: 0; width: 68%; }
   .mission-card p { max-width: 90%; }
 }
 
