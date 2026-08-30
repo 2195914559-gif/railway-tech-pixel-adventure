@@ -4,8 +4,11 @@
 
 ## 在线访问
 
-- 主链接（WorkBuddy）：https://9f0a1d89ef1749c293915c09ca3bfdf7.app.workbuddy.link
-- GitHub Pages 备用：仓库启用 Pages 后，从 https://<用户名>.github.io/<仓库名>/ 访问
+- 主链接（国内直连）：https://9f0a1d89ef1749c293915c09ca3bfdf7.app.workbuddy.link
+- 备用链接（GitHub Pages，长期保留）：https://2195914559-gif.github.io/railway-tech-pixel-adventure/
+- 源码仓库：https://github.com/2195914559-gif/railway-tech-pixel-adventure
+
+两个链接内容完全一致，任意一个失效时可用另一个。
 
 ## 构建信息
 
